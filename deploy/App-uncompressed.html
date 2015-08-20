@@ -1,4 +1,13 @@
-Ext.define('CustomApp', {
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Count of Defects, TTR</title>
+
+    <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
     stateful: true,
@@ -123,3 +132,25 @@ Ext.define('CustomApp', {
         console.log((Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0])._getRecordValue());
     }
 });
+
+
+            Rally.launchApp('CustomApp', {
+                name:"Count of Defects, TTR",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+
+    <style type="text/css">
+        .app {
+  /* Add app styles here */
+}
+
+    </style>
+</head>
+<body>
+</body>
+</html>
