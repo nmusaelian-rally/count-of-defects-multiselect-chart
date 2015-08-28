@@ -30,7 +30,7 @@ Ext.define('CustomApp', {
                 itemId: 'tagPicker',
                 stateful: true,
                 stateId: this.getContext().getScopedStateId('n-tags'),
-                values: this.tags,
+                value: this.tags,
                 listeners: {
                     select: this.onTagsSelected,
                     scope: this

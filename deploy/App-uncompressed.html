@@ -39,7 +39,7 @@
                 itemId: 'tagPicker',
                 stateful: true,
                 stateId: this.getContext().getScopedStateId('n-tags'),
-                values: this.tags,
+                value: this.tags,
                 listeners: {
                     select: this.onTagsSelected,
                     scope: this
@@ -156,7 +156,6 @@
         this.saveState();
     }
 });
-
 
             Rally.launchApp('CustomApp', {
                 name:"Count of Defects, TTR",
