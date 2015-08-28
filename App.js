@@ -2,11 +2,19 @@ Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
     stateful: true,
-    selectedTagsRefs:[],
+    //tagsRefs:[],
     selectedTags:[],
     getState: function() {
+        var tagsRefs = [];
+        var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
+        console.log('_getRecordValue()...',tags);
+        _.each(tags, function(tag){
+            console.log('inside getState', tag.data._ref);
+            tagsRefs.push(tag.data._ref);
+        });
+        console.log('inside getState',tagsRefs);
         return {
-            //tags: Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
+            tags: tagsRefs,
             filterByPriority: this.down('#priorityCheckbox').getValue()
         };
     },
@@ -22,6 +30,7 @@ Ext.define('CustomApp', {
                 itemId: 'tagPicker',
                 stateful: true,
                 stateId: this.getContext().getScopedStateId('n-tags'),
+                values: this.tags,
                 listeners: {
                     select: this.onTagsSelected,
                     scope: this
@@ -112,13 +121,26 @@ Ext.define('CustomApp', {
         console.log('selected priorities:', priorityBox.getValue());
     },
     onTagsSelected:function(){
-    },
-    filterByTags:function(){
+        var tagsRefs = [];
         var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
         console.log('_getRecordValue()...',tags);
         _.each(tags, function(tag){
             console.log(tag.data._ref);
+            tagsRefs.push(tag.data._ref);
         });
+        console.log(tagsRefs);
+        this.tags = tagsRefs;
+        this.saveState();
+    },
+    filterByTags:function(){
+        //var tagsRefs = [];
+        //var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
+        //console.log('_getRecordValue()...',tags);
+        //_.each(tags, function(tag){
+        //    console.log(tag.data._ref);
+        //    tagsRefs.push(tag.data._ref);
+        //});
+        //console.log(tagsRefs);
     },
     onPrioirtyCheckboxChanged:function(){
         this.filterByPriority = this.down('#priorityCheckbox').getValue();
