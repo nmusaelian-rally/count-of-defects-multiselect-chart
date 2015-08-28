@@ -2,14 +2,13 @@ Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
     stateful: true,
+    selectedTagsRefs:[],
     selectedTags:[],
     getState: function() {
         return {
-            priorities: Ext.ComponentQuery.query('rallyfieldvaluecombobox[itemId=priorityCombobox]')[0].getValue()
+            //tags: Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
+            filterByPriority: this.down('#priorityCheckbox').getValue()
         };
-    },
-    applyState: function(state) {
-        this.priorities = state.priorities;
     },
     launch: function() {
         var widgetPanel = Ext.create('Ext.Panel', {
@@ -24,7 +23,7 @@ Ext.define('CustomApp', {
                 stateful: true,
                 stateId: this.getContext().getScopedStateId('n-tags'),
                 listeners: {
-                    select: this.getSelectedTags,
+                    select: this.onTagsSelected,
                     scope: this
                 }
             },
@@ -82,18 +81,20 @@ Ext.define('CustomApp', {
         this.add(chartPanel);
         
         this.down('#propertyPickerPanel').add({
-            xtype: 'checkbox',
+            xtype: 'rallycheckboxfield',
             boxLabel: 'Filter grid by Priority',
             itemId: 'priorityCheckbox',
-            handler: this.getFilter,
-            scope: this
+            checked: this.filterByPriority,
+            listeners: {
+                change: this.onPrioirtyCheckboxChanged,
+                scope: this
+            }
         });
         this.down('#propertyPickerPanel').add({
             xtype: 'rallyfieldvaluecombobox',
             itemId: 'priorityCombobox',
             model: 'Defect',
             multiSelect: true,
-            value: this.priorities,
             defaultSelectionPosition: null,
             field: 'Priority',
             stateful: true,
@@ -104,22 +105,19 @@ Ext.define('CustomApp', {
                 scope: this
             }
         });
+        
     },
     getFilter:function(){
         var priorityBox = (Ext.ComponentQuery.query('rallyfieldvaluecombobox[itemId=priorityCombobox]')[0]);
         console.log('selected priorities:', priorityBox.getValue());
     },
-    getSelectedTags:function(){
-        var selectedTagsList = 'Currently selected tags:<br />';
-        var container = (Ext.ComponentQuery.query('container[itemId=myTags]')[0]);
-        selectedTags = (Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0])._getRecordValue();
-        _.each(selectedTags, function(tag){
-            selectedTagsList = selectedTagsList + ',' + tag.get('Name');
-            container.update(selectedTagsList);
-        });
-        
+    onTagsSelected:function(){
     },
     filterByTags:function(){
-        console.log((Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0])._getRecordValue());
+        console.log('_getRecordValue()...',Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue());
+    },
+    onPrioirtyCheckboxChanged:function(){
+        this.filterByPriority = this.down('#priorityCheckbox').getValue();
+        this.saveState();
     }
 });
