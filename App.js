@@ -33,6 +33,7 @@ Ext.define('CustomApp', {
                 value: this.tags,
                 listeners: {
                     select: this.onTagsSelected,
+                    deselect: this.onTagsSelected,
                     scope: this
                 }
             },
@@ -121,6 +122,7 @@ Ext.define('CustomApp', {
         console.log('selected priorities:', priorityBox.getValue());
     },
     onTagsSelected:function(){
+        console.log('onTagsSelected...');
         var tagsRefs = [];
         var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
         console.log('_getRecordValue()...',tags);
