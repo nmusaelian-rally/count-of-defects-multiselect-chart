@@ -2,19 +2,9 @@ Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
     stateful: true,
-    //tagsRefs:[],
-    selectedTags:[],
     getState: function() {
-        var tagsRefs = [];
-        var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
-        console.log('_getRecordValue()...',tags);
-        _.each(tags, function(tag){
-            console.log('inside getState', tag.data._ref);
-            tagsRefs.push(tag.data._ref);
-        });
-        console.log('inside getState',tagsRefs);
         return {
-            tags: tagsRefs,
+            tags: this.getTagRefsFromTagObjects(),
             filterByPriority: this.down('#priorityCheckbox').getValue()
         };
     },
@@ -122,7 +112,10 @@ Ext.define('CustomApp', {
         console.log('selected priorities:', priorityBox.getValue());
     },
     onTagsSelected:function(){
-        console.log('onTagsSelected...');
+        this.tags = this.getTagRefsFromTagObjects();
+        this.saveState();
+    },
+    getTagRefsFromTagObjects:function(){
         var tagsRefs = [];
         var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
         console.log('_getRecordValue()...',tags);
@@ -131,8 +124,7 @@ Ext.define('CustomApp', {
             tagsRefs.push(tag.data._ref);
         });
         console.log(tagsRefs);
-        this.tags = tagsRefs;
-        this.saveState();
+        return tagsRefs;
     },
     filterByTags:function(){
         //var tagsRefs = [];
