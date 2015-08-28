@@ -114,7 +114,11 @@ Ext.define('CustomApp', {
     onTagsSelected:function(){
     },
     filterByTags:function(){
-        console.log('_getRecordValue()...',Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue());
+        var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
+        console.log('_getRecordValue()...',tags);
+        _.each(tags, function(tag){
+            console.log(tag.data._ref);
+        });
     },
     onPrioirtyCheckboxChanged:function(){
         this.filterByPriority = this.down('#priorityCheckbox').getValue();
