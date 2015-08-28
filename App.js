@@ -43,13 +43,11 @@ Ext.define('CustomApp', {
                 xtype: 'container',
                 title: 'myTags',
                 itemId:'myTags',
-                html: 'Currently selected tags:',
                 border: 1,
                 flex: 1
             },
             {
                 xtype: 'panel',
-                title: 'propertyPickerPanel',
                 itemId:'propertyPickerPanel',
                 flex: 1
             }]
@@ -127,6 +125,13 @@ Ext.define('CustomApp', {
         return tagsRefs;
     },
     filterByTags:function(){
+        var selectedTagsList = 'Selected tags';
+        var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
+        var container = (Ext.ComponentQuery.query('container[itemId=myTags]')[0]);
+        _.each(tags, function(tag){
+          selectedTagsList = selectedTagsList + '<br />' + tag.data._refObjectName;
+           container.update(selectedTagsList);
+        });
         //var tagsRefs = [];
         //var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
         //console.log('_getRecordValue()...',tags);
