@@ -5,14 +5,8 @@ Ext.define('CustomApp', {
     weeks : [],
     numberOfWeeks:16, //default first time user loads the app
     textShowingCurrentSelection: 'Current Selection:<p />',
-    arrOfCreationDateFilters : [],
-    arrOfFixedAndLimitedByCreationDateFilters : [],
-    created : [],
-    fixedWithinTTR : [],
     ttr1  : 28, //28 days = 4 weeks
     ttr2  : 84,
-    allData : [],
-    categories : [],
     getState: function() {
         return {
             tags: this.getTagRefsFromTagObjects(),
@@ -20,7 +14,6 @@ Ext.define('CustomApp', {
         };
     },
     launch: function() {
-        this.getDates();
         this.makePage();
     },
     makePage:function(){
@@ -127,15 +120,6 @@ Ext.define('CustomApp', {
         this.add(gridPanel);
         this.add(chartPanel);
         if (this.tags.length >0) {
-            if (this.down('#driChart')) {
-		Ext.ComponentQuery.query('#chartPanel')[0].remove(Ext.ComponentQuery.query('#driChart')[0], true);
-	    }
-	    if (this.down('#detailsGrid')) {
-		Ext.ComponentQuery.query('#gridPanel1')[0].remove(Ext.ComponentQuery.query('#defectGrid')[0], true);
-	    }
-	    if (this.down('#detailsGrid')) {
-		Ext.ComponentQuery.query('#gridPanel2')[0].remove(Ext.ComponentQuery.query('#detailsGrid')[0], true);
-	    }
             this.createFilters();
         }
     },
@@ -168,6 +152,7 @@ Ext.define('CustomApp', {
         this.saveState();
     },
     getDates:function(){
+        this.weeks = [];
         console.log('getDates');
         var now = new Date(),
             today = now.getDay(),
@@ -201,7 +186,26 @@ Ext.define('CustomApp', {
         }
     },
     createFilters:function(){
-        console.log('createFilter');
+        this.arrOfCreationDateFilters = [];
+        this.arrOfFixedAndLimitedByCreationDateFilters = [];
+        this.created = [];
+        this.fixedWithinTTR = [];
+        this.allData = [];
+        this.categories = [];
+        this.series = [];
+        this.data = [[],[],[],[]];
+        this.defectStore = null;
+        this.getDates();
+        console.log('createFilters');
+        if (this.down('#driChart')) {
+	    Ext.ComponentQuery.query('#chartPanel')[0].remove(Ext.ComponentQuery.query('#driChart')[0], true);
+	}
+	if (this.down('#detailsGrid')) {
+	    Ext.ComponentQuery.query('#gridPanel1')[0].remove(Ext.ComponentQuery.query('#defectGrid')[0], true);
+	}
+	if (this.down('#detailsGrid')) {
+	    Ext.ComponentQuery.query('#gridPanel2')[0].remove(Ext.ComponentQuery.query('#detailsGrid')[0], true);
+	}
         this._myMask = new Ext.LoadMask(Ext.getBody(), {msg:"Please wait.This may take long..."});
         this._myMask.show();
         var tagFilter,
@@ -212,27 +216,7 @@ Ext.define('CustomApp', {
             closedDateFilters = [],
             creationDateFilters = [],
             container = (Ext.ComponentQuery.query('container[itemId=mySelections]')[0]);
-        
-        if (this.tags.length > 0) {
-            //code
-        }
-        _.each(this.tags, function(tag){
-            arrOfTagFilterObjects.push({
-                property : 'Tags',
-                operator: 'contains',
-                value: tag
-            })
-        },this);
-        
-        tagFilter = Rally.data.wsapi.Filter.or(arrOfTagFilterObjects);
-        this.textShowingCurrentSelection += tagFilter.toString();
-        container.update(this.textShowingCurrentSelection);
-        
-        closedFilter = tagFilter.and(Ext.create('Rally.data.wsapi.Filter', {
-            property : 'State',
-	    value: 'Closed'
-        }));
-        
+            
         codeResolitionFilter = Rally.data.wsapi.Filter.or([
             {
 		property : 'Resolution',
@@ -248,24 +232,69 @@ Ext.define('CustomApp', {
 	    }
         ]);
         
-        fixedFilter = closedFilter.and(codeResolitionFilter);
+        if (this.tags.length > 0) {
+            console.log('this.tags.length > 0', this.tags.length);
+            _.each(this.tags, function(tag){
+                arrOfTagFilterObjects.push({
+                    property : 'Tags',
+                    operator: 'contains',
+                    value: tag
+                })
+            },this);
+            
+            tagFilter = Rally.data.wsapi.Filter.or(arrOfTagFilterObjects);
+            closedFilter = tagFilter.and(Ext.create('Rally.data.wsapi.Filter', {
+                property : 'State',
+                value: 'Closed'
+            }));
+            
+            _.each(this.weeks, function(week){
+                var creationDateFilter = Rally.data.wsapi.Filter.and([
+                    {
+                        property : 'CreationDate',
+                        operator : '>=',
+                        value : week.start
+                    },
+                    {
+                        property : 'CreationDate',
+                        operator : '<',
+                        value : week.end
+                    }
+                ]);
+                this.arrOfCreationDateFilters.push(tagFilter.and(creationDateFilter));
+                fixedFilter = closedFilter.and(codeResolitionFilter);
+                this.arrOfFixedAndLimitedByCreationDateFilters.push(fixedFilter.and(creationDateFilter));
+            },this);
+        }
+        else {
+            console.log('this.tags.length === 0',this.tags.length); //0, this is a valid condition
+            closedFilter = Ext.create('Rally.data.wsapi.Filter', {
+                property : 'State',
+                value: 'Closed'
+            });
+            
+            _.each(this.weeks, function(week){
+                var creationDateFilter = Rally.data.wsapi.Filter.and([
+                    {
+                        property : 'CreationDate',
+                        operator : '>=',
+                        value : week.start
+                    },
+                    {
+                        property : 'CreationDate',
+                        operator : '<',
+                        value : week.end
+                    }
+                ]);
+                this.arrOfCreationDateFilters.push(creationDateFilter);
+                fixedFilter = closedFilter.and(codeResolitionFilter);
+                this.arrOfFixedAndLimitedByCreationDateFilters.push(fixedFilter.and(creationDateFilter));
+            },this);
+        }
         
-        _.each(this.weeks, function(week){
-            var creationDateFilter = Rally.data.wsapi.Filter.and([
-                {
-                    property : 'CreationDate',
-                    operator : '>=',
-                    value : week.start
-                },
-                {
-                    property : 'CreationDate',
-                    operator : '<',
-                    value : week.end
-                }
-            ]);
-            this.arrOfCreationDateFilters.push(tagFilter.and(creationDateFilter));
-            this.arrOfFixedAndLimitedByCreationDateFilters.push(fixedFilter.and(creationDateFilter));
-        },this);
+       
+        //this.textShowingCurrentSelection += tagFilter.toString();  //have to handle null
+        container.update(this.textShowingCurrentSelection);
         
         console.log(this.arrOfCreationDateFilters.length, ' Creation Date Filters--------');
         _.each(this.arrOfCreationDateFilters, function(filter){
@@ -281,18 +310,24 @@ Ext.define('CustomApp', {
     
     makeStore:function(){
         console.log('makeStore');
+        //console.log('this.defectStore..............',this.defectStore);  //during first load, prints this: ..... null, after selection or deselection in tagpicker: {config: Object, fetch: Array[10], limit: Infinity, proxy: j, initialConfig: ObjectÉ}
+        //if (this.defectStore) {
+        //    console.log('this.defectStore.getRecords()', this.defectStore.getRecords()); //prints 16 records
+        //    
+        //}
+        //console.log('this.defectStore..............',this.defectStore);
         this.concatArraysOfFilters = this.arrOfCreationDateFilters.concat(
             this.arrOfFixedAndLimitedByCreationDateFilters); //turn into one array of 24 filters
         this.defectStore = Ext.create('Rally.data.wsapi.Store',{
             model: 'Defect',
-            fetch: ['Name','State','Resolution','FormattedID','CreationDate','ClosedDate','Owner','Project','Priority'],
+            fetch: ['Name','State','Resolution','FormattedID','CreationDate','ClosedDate','Owner','Project','Priority', 'Tags'],
             limit: Infinity
         });
         this.applyFiltersToStore(0);
     },
     
     applyFiltersToStore:function(i){
-        console.log('applyFilterToStore');
+        //console.log('applyFilterToStore');
         this.defectStore.addFilter(this.concatArraysOfFilters[i]);
         this.defectStore.load({
             scope: this,
@@ -314,7 +349,8 @@ Ext.define('CustomApp', {
                             'Owner': (owner && owner._refObjectName) || 'None',
                             'Project':record.get('Project')._refObjectName,
                             'CreationDate': Rally.util.DateTime.format(record.get('CreationDate'), 'Y-m-d'),
-                            'ClosedDate': Rally.util.DateTime.format(record.get('ClosedDate'), 'Y-m-d')
+                            'ClosedDate': Rally.util.DateTime.format(record.get('ClosedDate'), 'Y-m-d'),
+                            //'Tags': record.get('Tags')
                         });
                         },this);
                     }
@@ -476,7 +512,7 @@ Ext.define('CustomApp', {
                     dataIndex: '4'
                 }
             ],
-            showPagingToolbar:false
+            showPagingToolbar:true
         });
         this.prepareChart();
     },
@@ -546,7 +582,14 @@ Ext.define('CustomApp', {
                 {
                     text: 'Priority',
                     dataIndex: 'Priority'
-                }
+                },
+                //{
+                //    text: 'Tags',
+                //    dataIndex: 'Tags',
+                //    renderer: function(){
+                //        return
+                //    }
+                //}
             ],
             showPagingToolbar:true,
             cls: ''
