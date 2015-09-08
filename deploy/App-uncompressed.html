@@ -12,95 +12,113 @@
     componentCls: 'app',
     stateful: true,
     weeks : [],
+    tags:[],
     numberOfWeeks:16, //default first time user loads the app
-    textShowingCurrentSelection: 'Current Selection:<p />',
     ttr1  : 28, //28 days = 4 weeks
     ttr2  : 84,
+    tagSelectionText: 'Currently selected tags:<br />',
     getState: function() {
+        this.getTagRefsFromTagObjects();
         return {
-            tags: this.getTagRefsFromTagObjects(),
+            tags: this.tags,
+            tagNames:this.tagNames,
+            tagsOperator: this.down('#tagsOperator').getValue(),
             numberOfWeeks: this.down('#numberOfWeeks').getValue()
         };
     },
     launch: function() {
         this.makePage();
+        
     },
     makePage:function(){
-        console.log('make page');
+        var minNumberOfWeeks = 1,
+            maxNumberOfWeeks = 52;
         var widgetPanel = Ext.create('Ext.Panel', {
             itemId: 'widget',
             layout: {
                 type: 'hbox',
                 align: 'middle'
             },
-            items: [{
-                xtype: 'rallytagpicker',
-                itemId: 'tagPicker',
-                stateful: true,
-                stateId: this.getContext().getScopedStateId('n-tags'),
-                value: this.tags,
-                fieldLabel: 'Tags:',
-                listeners: {
-                    select: this.onTagsSelected,
-                    deselect: this.onTagsSelected,
-                    scope: this
-                },
-                margin: 20
-            },{
-                xtype: 'rallyfieldvaluecombobox',
-                itemId: 'priorityCombobox',
-                model: 'Defect',
-                multiSelect: true,
-                defaultSelectionPosition: null,
-                field: 'Priority',
-                fieldLabel: 'Priority:',
-                stateful: true,
-                stateId: this.getContext().getScopedStateId('n-priority'),
-                listeners: {
-                    select: this.getFilter,
-                    ready: this.getFilter,
-                    scope: this
-                },
-                margin: 20
-                
-            },{
-                xtype: 'numberfield',
-                itemId: 'numberOfWeeks',
-                fieldLabel:'Number of Weeks',
-                value: this.numberOfWeeks,
-                maxValue: 56,
-                minValue: 0,
-                hideTrigger: true,
-                listeners: {
-                    change: this.getNumberOfWeeks,
-                    scope: this
-                },
-                margin: 20
-            }]
-        });
-        var selectionSummaryPanel = Ext.create('Ext.Panel', {
-            itemId:'selectionSummaryPanel',
-            layout: {
-                type: 'hbox',
-                align: 'stretch'
-            },
-            items: [{
-                xtype: 'container',
-                itemId:'mySelections',
-                html: this.textShowingCurrentSelection,
-                flex: 2
-            },{
-                xtype: 'rallybutton',
-                itemId: 'applyButton',
-                text: 'Apply Filters',
-                maxHeight: 20,
-                cls:'',
-                listeners: {
-                    click: this.createFilters,
-                    scope: this
-                },
-                margin: 20
-            }]
+            items:[
+                   {
+                        xtype:'container',
+                        itemId: 'tagPickerContainer',
+                        items:[
+                            {
+                                xtype: 'rallytagpicker',
+                                itemId: 'tagPicker',
+                                value: this.tags,
+                                listeners: {
+                                    collapse: this.resetTagPicker,
+                                    select: this.onTagsSelected,
+                                    deselect: this.onTagsSelected,
+                                    scope: this
+                                },
+                                margin: 20
+                            }
+                        ]
+                   },
+                   {
+                        xtype: 'container',
+                        itemId: 'otherWidgetsContainer',
+                        layout: 'hbox',
+                        items:[
+                            {
+                                xtype: 'rallycheckboxfield',
+                                itemId: 'tagsOperator',
+                                fieldLabel: 'Check to use AND operator for tags (default: OR)',
+                                checked: this.tagsOperator,
+                                listeners:{
+                                    change: this.onTagsOperatorSelected,
+                                    scope: this
+                                },
+                                margin: 20
+                            },{
+                                xtype: 'container',
+                                itemId: 'tagSelectionText',
+                                html: this.tagSelectionText,
+                                listeners:{
+                                    afterrender:this.showTagSelectionText,
+                                    scope: this
+                                },
+                                margin: 20
+                            },{
+                                xtype: 'numberfield',
+                                itemId: 'numberOfWeeks',
+                                fieldLabel:'Number of Weeks <br />between '+ minNumberOfWeeks + ' and ' + maxNumberOfWeeks,
+                                value: this.numberOfWeeks,
+                                maxValue: maxNumberOfWeeks,
+                                minValue: minNumberOfWeeks,
+                                allowBlank: false,
+                                hideTrigger: true,
+                                listeners: {
+                                    change: this.getNumberOfWeeks,
+                                    scope: this
+                                },
+                                margin: 20
+                            }
+                        ]
+                   },
+                   {
+                        xtype: 'container',
+                        itemId: 'buttonContainer',
+                        items:[
+                            {
+                                xtype: 'rallybutton',
+                                itemId: 'applyButton',
+                                text: 'Apply',
+                                //maxHeight: 20,
+                                padding: 5,
+                                cls:'',
+                                listeners: {
+                                    click: this.createFilters,
+                                    scope: this
+                                },
+                                margin: 20
+                            }
+                        ]
+                   }
+            ]
         });
         var gridPanel = Ext.create('Ext.Panel', {
             itemId:'gridPanel',
@@ -110,59 +128,99 @@
             },
             items: [{
                 xtype: 'panel',
-                title: 'Grid Panel 1',
+                title: 'Defect Resolution Index grid',
                 itemId:'gridPanel1',
                 flex: 1
             },{
                 xtype: 'panel',
-                title: 'Grid Panel 2',
+                title: 'Defects of the Week',
                 itemId:'gridPanel2',
                 flex: 1
             }]
         });
         var chartPanel = Ext.create('Ext.Panel', {
-            title: 'Chart Panel',
             itemId: 'chartPanel'
         });
         this.add(widgetPanel);
-        this.add(selectionSummaryPanel);
         this.add(gridPanel);
         this.add(chartPanel);
-        if (this.tags.length >0) {
+        
+        //if (this.tags.length >0) {
             this.createFilters();
-        }
-    },
-    getFilter:function(){
-        console.log('getFilter');
-        var priorityBox = (Ext.ComponentQuery.query('rallyfieldvaluecombobox[itemId=priorityCombobox]')[0]);
-        console.log('selected priorities:', priorityBox.getValue());
+        //}
     },
     onTagsSelected:function(){
-        console.log('onTagsSelected');
         this.tags = this.getTagRefsFromTagObjects();
+        this.tagNames = this.getTagNamesFromTagObjects();
         this.saveState();
+        console.log('this.tags.....', this.tags);
     },
     getTagRefsFromTagObjects:function(){
-        console.log('getTagRefsFromTagObjects');
-        var tagsRefs = [];
+        var tagRefs = [];
+        //var text =  this.tagSelectionText;
         var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
-        console.log('_getRecordValue()...',tags);
+        //console.log('_getRecordValue()...',tags);
         _.each(tags, function(tag){
-            console.log(tag.data._ref);
-            tagsRefs.push(tag.data._ref);
+            tagRefs.push(tag.data._ref);
+            //text += tag.data._ref + '<br />';
         });
-        console.log(tagsRefs);
-        return tagsRefs;
+        //Ext.ComponentQuery.query('container[itemId=tagSelectionText]')[0].update(text);
+        return tagRefs;
+    },
+    getTagNamesFromTagObjects:function(){
+        var tagNames = [];
+        var text =  this.tagSelectionText;
+        var tags = Ext.ComponentQuery.query('rallytagpicker[itemId=tagPicker]')[0]._getRecordValue();
+        _.each(tags, function(tag){
+            tagNames.push(tag.data.Name);
+            text += tag.data.Name + '<br />';
+        });
+        Ext.ComponentQuery.query('container[itemId=tagSelectionText]')[0].update(text);
+        return tagNames;
+    },
+    resetTagPicker:function(){
+        var tagPickerContainer = Ext.ComponentQuery.query('#tagPickerContainer')[0];
+        tagPickerContainer.remove(Ext.ComponentQuery.query('#tagPicker')[0],true);
+        tagPickerContainer.add({
+                xtype: 'rallytagpicker',
+                itemId: 'tagPicker',
+                value: this.tags,
+                listeners: {
+                    collapse: this.resetTagPicker,
+                    select: this.onTagsSelected,
+                    deselect: this.onTagsSelected,
+                    scope: this
+                },
+                margin: 20
+            });
+        this.saveState();
+        this.showTagSelectionText();
+    },
+    showTagSelectionText:function(){
+        var text =  this.tagSelectionText;
+        //if (this.tagNames.length > 0) {
+            _.each(this.tagNames, function(tag){
+                text += tag + '<br />';
+            });
+       // }
+        //else{
+            //text += 'No tags selected'
+        //}
+        Ext.ComponentQuery.query('container[itemId=tagSelectionText]')[0].update(text);
     },
     getNumberOfWeeks:function(){
-        console.log('ggetNumberOfWeeks');
         console.log(this.down('#numberOfWeeks').getValue());
         this.numberOfWeeks = this.down('#numberOfWeeks').getValue();
         this.saveState();
+        this.showTagSelectionText();
+    },
+    onTagsOperatorSelected: function() {
+        this.tagsOperator = this.down('#tagsOperator').getValue();
+        this.saveState();
+        this.showTagSelectionText();
     },
     getDates:function(){
         this.weeks = [];
-        console.log('getDates');
         var now = new Date(),
             today = now.getDay(),
             saturday = 6,
@@ -203,7 +261,15 @@
         this.categories = [];
         this.series = [];
         this.data = [[],[],[],[]];
+        this.series = [];
+        this.data = [[],[],[],[]];
         this.defectStore = null;
+        
+        if (!Ext.ComponentQuery.query('numberfield[itemId=numberOfWeeks]')[0].validate()) {
+            Ext.ComponentQuery.query('numberfield[itemId=numberOfWeeks]')[0].setValue(16);
+            this.numOfWeeks = this.down('#numberOfWeeks').getValue();
+        }
+        
         this.getDates();
         console.log('createFilters');
         if (this.down('#driChart')) {
@@ -242,16 +308,21 @@
         ]);
         
         if (this.tags.length > 0) {
-            console.log('this.tags.length > 0', this.tags.length);
+        //if (this.tags) {
+            //console.log('this.tags.length > 0', this.tags.length);
             _.each(this.tags, function(tag){
                 arrOfTagFilterObjects.push({
                     property : 'Tags',
-                    operator: 'contains',
                     value: tag
                 })
             },this);
             
-            tagFilter = Rally.data.wsapi.Filter.or(arrOfTagFilterObjects);
+            if (this.tagsOperator) {
+                tagFilter = Rally.data.wsapi.Filter.and(arrOfTagFilterObjects);
+            }
+            else{
+                 tagFilter = Rally.data.wsapi.Filter.or(arrOfTagFilterObjects);
+            }
             closedFilter = tagFilter.and(Ext.create('Rally.data.wsapi.Filter', {
                 property : 'State',
                 value: 'Closed'
@@ -276,7 +347,7 @@
             },this);
         }
         else {
-            console.log('this.tags.length === 0',this.tags.length); //0, this is a valid condition
+            //console.log('this.tags.length === 0',this.tags.length); //0, this is a valid condition
             closedFilter = Ext.create('Rally.data.wsapi.Filter', {
                 property : 'State',
                 value: 'Closed'
@@ -301,10 +372,6 @@
             },this);
         }
         
-       
-        //this.textShowingCurrentSelection += tagFilter.toString();  //have to handle null
-        container.update(this.textShowingCurrentSelection);
-        
         console.log(this.arrOfCreationDateFilters.length, ' Creation Date Filters--------');
         _.each(this.arrOfCreationDateFilters, function(filter){
             console.log(filter.toString());
@@ -318,15 +385,8 @@
     },
     
     makeStore:function(){
-        console.log('makeStore');
-        //console.log('this.defectStore..............',this.defectStore);  //during first load, prints this: ..... null, after selection or deselection in tagpicker: {config: Object, fetch: Array[10], limit: Infinity, proxy: j, initialConfig: Object�}
-        //if (this.defectStore) {
-        //    console.log('this.defectStore.getRecords()', this.defectStore.getRecords()); //prints 16 records
-        //    
-        //}
-        //console.log('this.defectStore..............',this.defectStore);
         this.concatArraysOfFilters = this.arrOfCreationDateFilters.concat(
-            this.arrOfFixedAndLimitedByCreationDateFilters); //turn into one array of 24 filters
+            this.arrOfFixedAndLimitedByCreationDateFilters); //turn into one array of numberOfWeeks filters
         this.defectStore = Ext.create('Rally.data.wsapi.Store',{
             model: 'Defect',
             fetch: ['Name','State','Resolution','FormattedID','CreationDate','ClosedDate','Owner','Project','Priority', 'Tags'],
@@ -336,7 +396,6 @@
     },
     
     applyFiltersToStore:function(i){
-        //console.log('applyFilterToStore');
         this.defectStore.addFilter(this.concatArraysOfFilters[i]);
         this.defectStore.load({
             scope: this,
@@ -379,7 +438,6 @@
         });
     },
     getFixedDefectsWithinTTR:function(records){
-        console.log('getFixedDefectsWithinTTR');
         var closedDefectsWithinTTR1 = [],
             closedDefectsWithinTTR2 = [],
             closedDefectsWithinAllTTRs = [];
@@ -428,10 +486,20 @@
         //console.log('fixedWithinTTR2',fixedWithinTTR2);
         
         for(var f = 0, c=0; f<fixedWithinTTR1.length; f++,c++){
-            dri1.push((fixedWithinTTR1[f]/this.created[c]*100).toFixed(2));
+            if (this.created[c] !== 0) {
+                dri1.push((fixedWithinTTR1[f]/this.created[c]*100).toFixed(2));
+            }
+            else{
+                dri1.push(0); //avoid NaN from division by 0
+            }
         }
         for(var f = 0, c=0; f<fixedWithinTTR2.length; f++,c++){
-            dri2.push((fixedWithinTTR2[f]/this.created[c]*100).toFixed(2));
+            if (this.created[c] !== 0) {
+                dri2.push((fixedWithinTTR2[f]/this.created[c]*100).toFixed(2));
+            }
+            else{
+                dri2.push(0); 
+            }
         }
         arrOfArraysOfColumnValues.push(this.created);
         arrOfArraysOfColumnValues.push(fixedWithinTTR1);
@@ -476,8 +544,8 @@
         this.makeGrid(arrOfObjectsOfRowValues);
     },
     makeGrid:function(data){
-        var that = this;
         this._myMask.hide();
+        var that = this;
         this.down('#gridPanel1').add({
             xtype: 'rallygrid',
             itemId: 'defectGrid',
@@ -591,23 +659,13 @@
                 {
                     text: 'Priority',
                     dataIndex: 'Priority'
-                },
-                //{
-                //    text: 'Tags',
-                //    dataIndex: 'Tags',
-                //    renderer: function(){
-                //        return
-                //    }
-                //}
+                }
             ],
             showPagingToolbar:true,
             cls: ''
         });
     },
     prepareChart: function(){
-        this.series = [];
-        this.data = [[],[],[],[]];
-        
         var chartData = [],
             numOfWeeksRunningDri1 = this.ttr1/7,
             numOfWeeksRunningDri2 = this.ttr2/7;
@@ -669,7 +727,6 @@
         this.makeChart();
     },
     makeChart:function(){
-        this._myMask.hide();
         var that = this;
         //console.log('this.categories',this.categories);
         //console.log('this.series...');
@@ -717,6 +774,13 @@
                 categories: that.categories
             }
           
+        });
+        //to remove loading mask on Apply
+        Ext.override(Rally.ui.chart.Chart,{
+            onRender: function () {
+                this.callParent(arguments);
+                this._unmask();
+            }
         });
     }
 });
